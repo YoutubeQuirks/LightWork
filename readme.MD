@@ -28,15 +28,15 @@ LightWork is an open source browser Userscript that returns the old embedded You
 ## Configuration
 
 LightWork allows you to add 2 different parameters to the URL.  
-1.) "?LightWorkIgnore=1": The player will be ignored by LightWork and the new UI loads.  
-2.) "?LightWorkLanguage=LAN_CODE": The following language will be loaded and used by the player. This has priority over the "?hl=" parameter. (e.g. EN_US)
+1.) `?LightWorkIgnore=1`: The player will be ignored by LightWork and the new UI loads.  
+2.) `?LightWorkLanguage=LAN_CODE`: The following language will be loaded and used by the player. This has priority over the "?hl=" parameter. (e.g. EN_US)
 
 
 ### Public Project Usage
 You are allowed to use LightWork in your own project (e.g. a browser extension), as long as it follows the [LICENSE](LICENSE) file.
 
 ## Issues
-If you encounter any issues or bugs, please create an issue on Github by visiting this URL: ([https://github.com/issues]).
+If you encounter any issues or bugs, please create an issue on Github by visiting this URL: https://github.com/YoutubeQuirks/LightWork/issues.
 
 ## Updates
 This script does not update automatically. You will have to manually update it via your UserScript manager.

@@ -27,6 +27,26 @@ This copyright notice must remain at the top of the file and not be modified.
 (function () {
     'use strict';
 
+    //-- START OF USER CONFIG --//
+
+    // LightWork now loads the latest embed player build with the old UI instead of loading older builds. The old build init technique is only kept as backup.
+    // indicates if the backup player should be loaded
+    let LightWork_useBackup = false;
+    // indicates if the page should be reloaded when LightWork is injected too late and retry (recommended due to weird browser behavior)
+    let LightWork_retryInjection = true;
+
+    //-- END OF USER CONFIG --//
+
+    // indicates if we should change the player version in the config data to the latest one (if we aren’t using the backup player)
+    if (!LightWork_useBackup) {
+        if (typeof unsafeWindow !== "undefined") {
+            unsafeWindow.LightWork_changePlayerVersion = true;
+        }
+        else {
+            window.LightWork_changePlayerVersion = true;
+        }
+    }
+
     // Disables TrustedTypes (required for dynamic script injection)
     if (window.trustedTypes && window.trustedTypes.createPolicy && !window.trustedTypes.defaultPolicy) {
         window.trustedTypes.createPolicy('default', {
@@ -153,13 +173,15 @@ This copyright notice must remain at the top of the file and not be modified.
         link.setAttribute('name', 'www-player');
         document.head.appendChild(link);
 
-        // Preload the embed.js file that will be later fetched by base.js
-        let link2 = document.createElement('link');
-        link2.rel = 'preload';
-        link2.href = 'https://www.youtube.com/s/player/4c5cf06a/player_ias.vflset/en_US/embed.js';
-        link2.setAttribute('name', 'player/embed');
-        link2.as = 'script';
-        document.head.appendChild(link2);
+        // Preload the backup embed.js file that will be later fetched by base.js
+        if (LightWork_useBackup) {
+            let link2 = document.createElement('link');
+            link2.rel = 'preload';
+            link2.href = 'https://www.youtube.com/s/player/4c5cf06a/player_ias.vflset/en_US/embed.js';
+            link2.setAttribute('name', 'player/embed');
+            link2.as = 'script';
+            document.head.appendChild(link2);
+        }
     }
 
     // Inject old Youtube scripts
@@ -664,6 +686,22 @@ function OverrideConfig() {
         "POST_MESSAGE_ORIGIN": "*",
         "DOMAIN_ADMIN_STATE": ""
     };
+
+    if (window.LightWork_changePlayerVersion) { 
+        let PlayerVersion = window.NewBaseURL.split('/').slice(3)[0]
+        this.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.jsUrl = this.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.jsUrl.replace(/\/s\/player\/[^/]+/, '/s/player/' + PlayerVersion)
+        this.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.cssUrl = this.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.cssUrl.replace(/\/s\/player\/[^/]+/, '/s/player/' + PlayerVersion)
+        this.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.trustedJsUrl.privateDoNotAccessOrElseTrustedResourceUrlWrappedValue = this.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.trustedJsUrl.privateDoNotAccessOrElseTrustedResourceUrlWrappedValue.replace(/\/s\/player\/[^/]+/, '/s/player/' + PlayerVersion)
+        this.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.trustedCssUrl.privateDoNotAccessOrElseTrustedResourceUrlWrappedValue = this.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.trustedCssUrl.privateDoNotAccessOrElseTrustedResourceUrlWrappedValue.replace(/\/s\/player\/[^/]+/, '/s/player/' + PlayerVersion)
+
+        window.LightWork_fixUrlsForBackup = function () {
+            ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.jsUrl = ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.jsUrl.replace('/s/player/' + PlayerVersion, '/s/player/4c5cf06a')
+            ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.cssUrl = ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.cssUrl.replace('/s/player/' + PlayerVersion, '/s/player/4c5cf06a')
+            ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.trustedJsUrl.privateDoNotAccessOrElseTrustedResourceUrlWrappedValue = ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.trustedJsUrl.privateDoNotAccessOrElseTrustedResourceUrlWrappedValue.replace('/s/player/' + PlayerVersion, '/s/player/4c5cf06a')
+            ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.trustedCssUrl.privateDoNotAccessOrElseTrustedResourceUrlWrappedValue = ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.trustedCssUrl.privateDoNotAccessOrElseTrustedResourceUrlWrappedValue.replace('/s/player/' + PlayerVersion, '/s/player/4c5cf06a')
+        }
+    }
+
     if (OriginalValue.PLAYER_VARS.video_id) {
         this.data_.PLAYER_VARS.video_id = OriginalValue.PLAYER_VARS.video_id;
     }
@@ -711,25 +749,30 @@ function OverrideConfig() {
     }
 }
 
-if (window.ytcfg) {
+if (window.ytcfg && window.ytcfg.data_) {
     OverrideConfig.call(window.ytcfg);
 }
 
 else {
-
     let ytcfgValue;
 
     Object.defineProperty(window, 'ytcfg', {
         configurable: true,
+
         set(value) {
             ytcfgValue = value;
 
             let originalSet = value.set;
-            value.set = function () {
-                originalSet.apply(this, arguments);
-                OverrideConfig.call(this);
-            }
+
+            value.set = function (...args) {
+                let result = originalSet.apply(this, args);
+
+                OverrideConfig.call(this, ...args);
+
+                return result;
+            };
         },
+
         get() {
             return ytcfgValue;
         }
@@ -974,110 +1017,108 @@ else {
         let LightWorkLanguage = location.search.match(/[?&]LightWorkLanguage=([^&]*)/)?.[1];
 
         let OldBaseUrl = null;
+        let BaseFetch = null;
         // Fetch the old and new base
-        let BaseFetch = Promise.all([
-            new Promise(resolve => {
-                // retries every 1MS if the new base was not found (usually takes max 3 retries)
-                let wait = setInterval(() => {
-                    // If the language already exists (forced by the LightWorkLanguage param)
-                    if (LightWorkLanguage) {
-                        clearInterval(wait);
-                        // Construct and fetch the old base url from Youtube’s servers
-                        OldBaseUrl = `https://www.youtube.com/s/player/4c5cf06a/player_ias.vflset/${LightWorkLanguage}/base.js`;
-                        resolve(fetch(OldBaseUrl)
-                            // Handle a successful/failed response
-                            .then(response => response.ok ? response.text() : Promise.reject(response.status)));
-                    }
-                    // Otherwise, get it automatically
-                    else {
+        function FetchBases(UseBackup) {
+            BaseFetch = Promise.all([
+                new Promise(resolve => {
+                    // retries every 1MS if the new base was not found (usually takes max 3 retries)
+                    let wait = setInterval(() => {
                         GetNewBaseURL();
                         if (NewBaseURL) {
                             clearInterval(wait);
                             // Extract the language from the URL
                             LightWorkLanguage = NewBaseURL.split('/').slice(-2)[0];
+                            // Extract the player version from the URL
+                            let PlayerVersion = null;
+                            if (!UseBackup) {
+                                PlayerVersion = NewBaseURL.split('/').slice(3)[0];
+                            }
+                            else {
+                                PlayerVersion = "4c5cf06a";
+                            }
                             // fetch the old base
-                            OldBaseUrl = `https://www.youtube.com/s/player/4c5cf06a/player_ias.vflset/${LightWorkLanguage}/base.js`;
+                            OldBaseUrl = `https://www.youtube.com/s/player/${PlayerVersion}/player_ias.vflset/${LightWorkLanguage}/base.js`;
                             resolve(fetch(OldBaseUrl)
                                 // Handle a successful/failed response
                                 .then(response => response.ok ? response.text() : Promise.reject(response.status)));
                         }
-                    }
-                }, 1);
-            }),
-            // Get the new base URL
-            new Promise(resolve => {
-                let wait = setInterval(() => {
-                    GetNewBaseURL();
-                    if (NewBaseURL) {
-                        clearInterval(wait);
-                        // fetch the new base
-                        resolve(fetch(NewBaseURL)
-                            // Handle a successful/failed response
-                            .then(response => response.ok ? response.text() : Promise.reject(response.status)));
-                    }
-                }, 1);
-            })
-        ]);
-
-        // Inject the embed-player script
-        let EmbedScript = document.createElement('script');
-        EmbedScript.setAttribute('LightWork', '');
-        EmbedScript.src = "https://www.youtube.com/s/embeds/02917fdd/www-embed-player.vflset/www-embed-player.js";
-        // Set all the attributes
-        EmbedScript.setAttribute('name', 'embed_client');
-        EmbedScript.setAttribute('id', 'base-js');
-        // when it loads
-        EmbedScript.onload = () => {
+                    }, 1);
+                }),
+                // Get the new base URL
+                UseBackup && new Promise(resolve => {
+                    let wait = setInterval(() => {
+                        GetNewBaseURL();
+                        if (NewBaseURL) {
+                            clearInterval(wait);
+                            // fetch the new base
+                            resolve(fetch(NewBaseURL)
+                                // Handle a successful/failed response
+                                .then(response => response.ok ? response.text() : Promise.reject(response.status)));
+                        }
+                    }, 1);
+                })
+            ]);
             // after base and new base was fetched
             BaseFetch.then(([base, newBase]) => {
-                // Replaces/adds a lot of lines in the old base to load the video
+                // Init an old version of the player build (we have a backup option, so the script is more reliable in the long term)
+                if (UseBackup) {
+                    // Replaces/adds a lot of lines in the old base to load the video
 
-                // Defines all the promises that are later going to be used to wait for the video URL and SABR token
-                base = `let CurrentVideoId=null;window.GoogleVideoMediaUrlPromise=new Promise(resolve=>{window.GoogleVideoMediaUrlReady=resolve;});window.SabrRequestTokenPromise=new Promise(resolve=>{window.SabrRequestTokenReady=resolve;});\n${base}`;
+                    // Defines all the promises that are later going to be used to wait for the video URL and SABR token
+                    base = `let CurrentVideoId=null;window.GoogleVideoMediaUrlPromise=new Promise(resolve=>{window.GoogleVideoMediaUrlReady=resolve;});window.SabrRequestTokenPromise=new Promise(resolve=>{window.SabrRequestTokenReady=resolve;});\n${base}`;
 
-                // Defines EarlyNewPlayerLoadVideo function that will reset the variables and promises
-                // Afterward, if the NewPlayerLoadVideo function isn’t ready yet, retry
-                base = `function EarlyNewPlayerLoadVideo(VideoId){if(window.SabrRequestTokenReady)window.SabrRequestTokenReady(Promise.reject("cancelled"));if(window.GoogleVideoMediaUrlReady)window.GoogleVideoMediaUrlReady(Promise.reject("cancelled"));window.SabrRequestToken=null;window.GoogleVideoMediaUrl=null;window.GoogleVideoMediaUrlPromise=new Promise(resolve=>{window.GoogleVideoMediaUrlReady=resolve;});window.SabrRequestTokenPromise=new Promise(resolve=>{window.SabrRequestTokenReady=resolve;});if(typeof NewPlayerLoadVideo==="function")return NewPlayerLoadVideo(VideoId);let i=setInterval(()=>{if(typeof NewPlayerLoadVideo==="function"){clearInterval(i);NewPlayerLoadVideo(VideoId)}},1)}\n${base}`;
-                // Youtube now requires embeds to send the referrer, which is the URL that loaded the player
-                // Fix the broken line in the old player so it sets it correctly
-                base = base.replace(
-                    /this\.loaderUrl\s*=\s*U\s*\?\s*this\.J\s*\|\|\s*Ovs\(this\)\s*&&\s*U\.loaderUrl\s*\?\s*U\.loaderUrl\s*\|\|\s*""\s*:\s*this\.b2\s*:\s*this\.J\s*\|\|\s*Ovs\(this\)\s*&&\s*k\.loaderUrl\s*\?\s*n4\("",\s*k\.loaderUrl\)\s*:\s*this\.b2\s*;/,
-                    'this.loaderUrl = document.referrer;'
-                );
-                // Extract the signatureTimestamp from the new base URL and replace the one in the old base with it
-                // This is something like a token, that Youtube uses to tell if you are making a valid request to their player endpoint
-                let timestamp = newBase.match(/signatureTimestamp:(\d+)/)?.[1];
-                base = base.replace(/signatureTimestamp:\d+/g, `signatureTimestamp:${timestamp}`);
-                // Under the line that makes the player request, also load the video in the new player by calling our function
-                base = base.replace(
-                    /(C\.send\(\(O=U\.body\)!=null\?O:null\))/,
-                    '$1;try{let ParsedVideoId=JSON.parse(U.body).videoId;if(ParsedVideoId!==undefined&&ParsedVideoId!==CurrentVideoId){EarlyNewPlayerLoadVideo(ParsedVideoId);CurrentVideoId=ParsedVideoId;}}catch{}'
-                );
-                // Make the video URL fetch function an async function and wait for the GoogleVideoMediaUrlPromise to resolve
-                // We do this, because each new player build changes the GoogleVideo URL generation algorythm
-                // Any old one doesn’t match what the server expects and results in a 403 forbidden error
-                base = base.replace(
-                    /g\.V\.start=function\((\w+)\)\{(.*?)(\w+)=new Request\(\1,(\w+)\);/,
-                    'g.V.start=async function($1){$2await GoogleVideoMediaUrlPromise;$1 = GoogleVideoMediaUrl;$1=new Request($1,$4);'
-                );
-                // After a request to the Youtube player endpoint completes, wait for the SabrRequestTokenPromise to resolve
-                // Youtube started to force SABR usage and because we copy the GoogleVideo URL from the new player, we also need to copy the SABR token belonging to it
-                base = base.replace(
-                    /(function v\(\)\{)/,
-                    'async $1try{let ParsedResponse=JSON.parse(C.response);if(ParsedResponse.playerConfig&&ParsedResponse.playerConfig.mediaCommonConfig&&ParsedResponse.playerConfig.mediaCommonConfig.mediaUstreamerRequestConfig)await SabrRequestTokenPromise;}catch{}'
-                );
+                    // Defines EarlyNewPlayerLoadVideo function that will reset the variables and promises
+                    // Afterward, if the NewPlayerLoadVideo function isn’t ready yet, retry
+                    base = `function EarlyNewPlayerLoadVideo(VideoId){if(window.SabrRequestTokenReady)window.SabrRequestTokenReady(Promise.reject("cancelled"));if(window.GoogleVideoMediaUrlReady)window.GoogleVideoMediaUrlReady(Promise.reject("cancelled"));window.SabrRequestToken=null;window.GoogleVideoMediaUrl=null;window.GoogleVideoMediaUrlPromise=new Promise(resolve=>{window.GoogleVideoMediaUrlReady=resolve;});window.SabrRequestTokenPromise=new Promise(resolve=>{window.SabrRequestTokenReady=resolve;});if(typeof NewPlayerLoadVideo==="function")return NewPlayerLoadVideo(VideoId);let i=setInterval(()=>{if(typeof NewPlayerLoadVideo==="function"){clearInterval(i);NewPlayerLoadVideo(VideoId)}},1)}\n${base}`;
+                    // Youtube now requires embeds to send the referrer, which is the URL that loaded the player
+                    // Fix the broken line in the old player so it sets it correctly
+                    base = base.replace(
+                        /this\.loaderUrl\s*=\s*U\s*\?\s*this\.J\s*\|\|\s*Ovs\(this\)\s*&&\s*U\.loaderUrl\s*\?\s*U\.loaderUrl\s*\|\|\s*""\s*:\s*this\.b2\s*:\s*this\.J\s*\|\|\s*Ovs\(this\)\s*&&\s*k\.loaderUrl\s*\?\s*n4\("",\s*k\.loaderUrl\)\s*:\s*this\.b2\s*;/,
+                        'this.loaderUrl = document.referrer;'
+                    );
+                    // Extract the signatureTimestamp from the new base URL and replace the one in the old base with it
+                    // This is something like a token, that Youtube uses to tell if you are making a valid request to their player endpoint
+                    let timestamp = newBase.match(/signatureTimestamp:(\d+)/)?.[1];
+                    base = base.replace(/signatureTimestamp:\d+/g, `signatureTimestamp:${timestamp}`);
+                    // Under the line that makes the player request, also load the video in the new player by calling our function
+                    base = base.replace(
+                        /(C\.send\(\(O=U\.body\)!=null\?O:null\))/,
+                        '$1;try{let ParsedVideoId=JSON.parse(U.body).videoId;if(ParsedVideoId!==undefined&&ParsedVideoId!==CurrentVideoId){EarlyNewPlayerLoadVideo(ParsedVideoId);CurrentVideoId=ParsedVideoId;}}catch{}'
+                    );
+                    // Make the video URL fetch function an async function and wait for the GoogleVideoMediaUrlPromise to resolve
+                    // We do this, because each new player build changes the GoogleVideo URL generation algorythm
+                    // Any old one doesn’t match what the server expects and results in a 403 forbidden error
+                    base = base.replace(
+                        /g\.V\.start=function\((\w+)\)\{(.*?)(\w+)=new Request\(\1,(\w+)\);/,
+                        'g.V.start=async function($1){$2await GoogleVideoMediaUrlPromise;$1 = GoogleVideoMediaUrl;$1=new Request($1,$4);'
+                    );
+                    // After a request to the Youtube player endpoint completes, wait for the SabrRequestTokenPromise to resolve
+                    // Youtube started to force SABR usage and because we copy the GoogleVideo URL from the new player, we also need to copy the SABR token belonging to it
+                    base = base.replace(
+                        /(function v\(\)\{)/,
+                        'async $1try{let ParsedResponse=JSON.parse(C.response);if(ParsedResponse.playerConfig&&ParsedResponse.playerConfig.mediaCommonConfig&&ParsedResponse.playerConfig.mediaCommonConfig.mediaUstreamerRequestConfig)await SabrRequestTokenPromise;}catch{}'
+                    );
 
-                // If its a Youtube player endpoint response, override the SABR token with the one from the new player
-                base = base.replace(
-                    /(var C=JSON\.parse\(n\))/,
-                    '$1;if(C.playerConfig&&C.playerConfig.mediaCommonConfig&&C.playerConfig.mediaCommonConfig.mediaUstreamerRequestConfig)C.playerConfig.mediaCommonConfig.mediaUstreamerRequestConfig.videoPlaybackUstreamerConfig=window.SabrRequestToken;'
-                );
+                    // If its a Youtube player endpoint response, override the SABR token with the one from the new player
+                    base = base.replace(
+                        /(var C=JSON\.parse\(n\))/,
+                        '$1;if(C.playerConfig&&C.playerConfig.mediaCommonConfig&&C.playerConfig.mediaCommonConfig.mediaUstreamerRequestConfig)C.playerConfig.mediaCommonConfig.mediaUstreamerRequestConfig.videoPlaybackUstreamerConfig=window.SabrRequestToken;'
+                    );
 
-                // Fixes a livestream video buffering/looping issue
-                base = base.replace(
-                    /if\(!Z\.info\.j\)\{/g,
-                    'if(!Z.info.j && !(Z.info.S === 0 && Z.info.A8 >= 0 && Z.info.duration > 0 && Z.info.B > 0 && (k.TJ.isLive || k.TJ.isManifestless))){'
-                );
+                    // Fixes a livestream video buffering/looping issue
+                    base = base.replace(
+                        /if\(!Z\.info\.j\)\{/g,
+                        'if(!Z.info.j && !(Z.info.S === 0 && Z.info.A8 >= 0 && Z.info.duration > 0 && Z.info.B > 0 && (k.TJ.isLive || k.TJ.isManifestless))){'
+                    );
+                }
+
+                else {
+                    base = base.replace(
+                        /this\.loaderUrl=[^;]+;/g,
+                        'this.loaderUrl=document.referrer;'
+                    );
+                }
 
                 // After the base is modified, inject it as a text content script
                 let BaseScript = document.createElement('script');
@@ -1097,8 +1138,29 @@ else {
                 document.body.appendChild(s6);
                 // If the base failed to fetch, log it for debugging
             }).catch(error => {
-                LightWork_error('Failed to fetch base.js. Try reloading the page. ' + error);
+                LightWork_error('Failed to fetch base.js. Loading the backup player... ' + error);
+                // Try to init the backup player
+                LightWork_createProxyIframe();
+                FetchBases(true);
+                if (typeof unsafeWindow !== "undefined") {
+                    unsafeWindow.LightWork_fixUrlsForBackup();
+                }
+                else {
+                    window.LightWork_fixUrlsForBackup();
+                }
             });
+        }
+
+        // Inject the embed-player script
+        let EmbedScript = document.createElement('script');
+        EmbedScript.setAttribute('LightWork', '');
+        EmbedScript.src = "https://www.youtube.com/s/embeds/02917fdd/www-embed-player.vflset/www-embed-player.js";
+        // Set all the attributes
+        EmbedScript.setAttribute('name', 'embed_client');
+        EmbedScript.setAttribute('id', 'base-js');
+        // when it loads
+        EmbedScript.onload = () => {
+            FetchBases(LightWork_useBackup);
         };
         document.body.appendChild(EmbedScript);
 
@@ -1139,6 +1201,18 @@ else {
         document.body.appendChild(noscript);
     }
 
+    function LightWork_createProxyIframe() {
+        // Youtube prevents loading the embedded player on a Youtube page, this gets around that
+        let iframe = document.createElement('iframe');
+        iframe.src = "https://example.net/?LightWorkPrivate=1";
+        iframe.width = "0";
+        iframe.height = "0";
+        iframe.style.display = "none";
+        // We can use document.head, because we do not need to see it or interact with it in any way
+        // Its only for extracting the GoogleVideo URL and SABR token
+        document.head.appendChild(iframe);
+    }
+
     // Init the old player
     function LightWork_initOldPlayer() {
         // Inject the robots tag (also mainly for compatibility reasons)
@@ -1153,16 +1227,10 @@ else {
             player.id = "player";
             document.body.appendChild(player);
         }
-        // Create the proxy iframe
-        // Youtube prevents loading the embedded player on a Youtube page, this gets around that
-        let iframe = document.createElement('iframe');
-        iframe.src = "https://example.net/?LightWorkPrivate=1";
-        iframe.width = "0";
-        iframe.height = "0";
-        iframe.style.display = "none";
-        // We can use document.head, because we do not need to see it or interact with it in any way
-        // Its only for extracting the GoogleVideo URL and SABR token
-        document.head.appendChild(iframe);
+        // If we are using the backup player, create the proxy iframe
+        if (LightWork_useBackup) {
+            LightWork_createProxyIframe();
+        }
         // Inject the old styles & scripts
         LightWork_injectStyles();
         LightWork_injectScripts();
@@ -1189,7 +1257,7 @@ else {
             if (typeof unsafeWindow !== "undefined") {
                 BrowserWindow = unsafeWindow;
             }
-            // Otheriwse, point it to the normal browser window
+            // Otherwise, point it to the normal browser window
             else {
                 BrowserWindow = window;
             }
@@ -1282,6 +1350,8 @@ else {
                                 // If the extraction fails, log it for debugging
                             } catch (error) {
                                 LightWork_error('Failed to get SABR config token ' + error);
+                                // Resolve the promise (this prevents the player from infinitely loading and makes it show the error)
+                                BrowserWindow.parent.parent.SabrRequestTokenReady(token);
                             }
                         });
                     }
@@ -1344,6 +1414,10 @@ else {
             // If the base script already exists, throw a too late error and stop init (impossible to do anything at this point)
             if (document.querySelector('script[src*="base"]')) {
                 LightWork_error('Too late! Please make sure to run LightWork at document-start.');
+                // if retry injection is enabled, reload the page and retry
+                if (LightWork_retryInjection) {
+                    window.location.reload();
+                }
                 return;
             }
             // If document.body exists, tell the embed init function to not create a new body
@@ -1354,7 +1428,7 @@ else {
                 LightWork_embedInit(false);
             }
         }
-        // Otherwise, if we are running inside a LightWorkPrivate iframe
+        // Otherwise, if we are running inside a LightWorkPrivate iframe (ONLY RUNS IF THE BACKUP PLAYER IS ENABLED)
         else if ((window.self !== window.top) && window.location.href.includes('?LightWorkPrivate=1')) {
             // Init LightWorkPrivate
             LightWork_privateInit();

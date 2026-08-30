@@ -27,9 +27,15 @@ LightWork is an open source browser Userscript that returns the old embedded You
 
 ## Configuration
 
-LightWork allows you to add 2 different parameters to the URL.  
+LightWork allows configuration via URL parameters and UserScript flags.
+
+#### Url Parameters:
 1.) `?LightWorkIgnore=1`: The player will be ignored by LightWork and the new UI loads.  
-2.) `?LightWorkLanguage=LAN_CODE`: The following language will be loaded and used by the player. This has priority over the "?hl=" parameter. (e.g. EN_US)
+2.) `?LightWorkLanguage=LAN_CODE`: The following language will be loaded and used by the player. This has priority over the "?hl=" parameter. (e.g. en_US)
+
+#### UserScript flags:
+1.) `LightWork_useBackup`: The backup player will be loaded instead of the main one.  
+2.) `LightWork_retryInjection`: If LightWork runs too late and injection fails, this flag will reload the page and retry.
 
 
 ### Public Project Usage

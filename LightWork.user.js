@@ -558,8 +558,8 @@ function OverrideConfig() {
         "GAPI_HINT_PARAMS": "m;/_/scs/abc-static/_/js/k\u003dgapi.gapi.en.AKdz2vhcyW0.O/d\u003d1/rs\u003dAHpOoo_GPfyZPmTuYcbMXzJr0yr8Akk4Tw/m\u003d__features__",
         "GAPI_HOST": "https://apis.google.com",
         "GAPI_LOCALE": this.data_?.GAPI_LOCALE,
-        "GL": this?.data_.GL,
-        "HL": this?.data_.HL,
+        "GL": this?.data_?.GL,
+        "HL": this?.data_?.HL,
         "HTML_DIR": "ltr",
         "HTML_LANG": this.data_?.HTML_LANG,
         "INNERTUBE_API_KEY": this.data_?.INNERTUBE_API_KEY,
@@ -568,7 +568,7 @@ function OverrideConfig() {
         "INNERTUBE_CLIENT_VERSION": "1.20260220.06.00",
         "INNERTUBE_CONTEXT": {
             "client": {
-                "hl": this.data_?.INNERTUBE_CONTEXT?.client.hl,
+                "hl": this.data_?.INNERTUBE_CONTEXT?.client?.hl,
                 "gl": this.data_?.INNERTUBE_CONTEXT?.client?.gl,
                 "remoteHost": this.data_?.INNERTUBE_CONTEXT?.client?.remoteHost,
                 "deviceMake": "",

@@ -29,6 +29,8 @@ This copyright notice must remain at the top of the file and not be modified.
 
     //-- START OF USER CONFIG --//
 
+    // WARNING: THIS CONFIG IS IGNORED WHEN LIGHTWORK IS LOADED BY USING THE LIGHTWORKLOADER SCRIPT
+
     // LightWork now loads the latest embed player build with the old UI instead of loading older builds. The old build init technique is only kept as backup.
     // indicates if the backup player should be loaded
     let LightWork_useBackup = false;
@@ -36,6 +38,13 @@ This copyright notice must remain at the top of the file and not be modified.
     let LightWork_retryInjection = true;
 
     //-- END OF USER CONFIG --//
+
+    // If LightWork was loaded by using the LightWorkLoader, override the config based on the loader’s attributes
+    let CurrentScript = document.currentScript;
+    if (CurrentScript?.hasAttribute("LightWorkLoader")) {
+        LightWork_useBackup = CurrentScript.hasAttribute("LightWork_useBackup");
+        LightWork_retryInjection = CurrentScript.hasAttribute("LightWork_retryInjection");
+    }
 
     // indicates if we should change the player version in the config data to the latest one (if we aren’t using the backup player)
     if (!LightWork_useBackup) {

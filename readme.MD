@@ -14,7 +14,7 @@ LightWork is an open source browser Userscript that returns the old embedded You
   3. Paste this url into your browser: `about:extensions`
   4. Toggle `Developer Mode` on
   5. Click the TamperMonkey extension and scroll down a bit. Toggle the `Allow UserScripts` option on and restart your browser
-  7. Install LightWork: [LightWork](https://raw.githubusercontent.com/YoutubeQuirks/LightWork/refs/heads/main/LightWork.user.js)
+  7. Install the LightWork loader (automatic updates): [LightWork](https://raw.githubusercontent.com/YoutubeQuirks/LightWork/refs/heads/main/LightWorkLoader.user.js)
   8. Load a video in the embedded player and enjoy!
 
 ### Firefox
@@ -22,7 +22,7 @@ LightWork is an open source browser Userscript that returns the old embedded You
   1. Go to the Firefox addons store and install a UserScript extension:
    [TamperMonkey for Firefox](https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/)
   2. Click **Add to Firefox** to install TamperMonkey
-  3. Install LightWork: [LightWork](https://raw.githubusercontent.com/YoutubeQuirks/LightWork/refs/heads/main/LightWork.user.js)
+  3. Install the LightWork loader (automatic updates): [LightWork](https://raw.githubusercontent.com/YoutubeQuirks/LightWork/refs/heads/main/LightWorkLoader.user.js)
   4. Load a video in the embedded player and enjoy!
 
 ## Configuration
@@ -45,4 +45,4 @@ You are allowed to use LightWork in your own project (e.g. a browser extension),
 If you encounter any issues or bugs, please create an issue on Github by visiting this URL: https://github.com/YoutubeQuirks/LightWork/issues.
 
 ## Updates
-This script does not update automatically. You will have to manually update it via your UserScript manager.
+You can now use the LightWork loader, which automatically executes the latest version of the script. If you still want to use LightWork itself as a UserScript, you will have to manually update it via your UserScript manager.

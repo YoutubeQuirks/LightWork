@@ -45,7 +45,7 @@ This copyright notice must remain at the top of the file and not be modified.
         LightWork_useBackup = CurrentScript.hasAttribute("LightWork_useBackup");
         LightWork_retryInjection = CurrentScript.hasAttribute("LightWork_retryInjection");
     }
-    else if (window.self === window.top) {
+    else if (window.location.href.includes('youtube.com/embed/') && !window.location.href.includes('?LightWorkPrivate=1') && !window.location.href.includes('?LightWorkIgnore=1')) {
         alert("LightWork now supports automatic updates. Please visit this URL to install the new loader: https://github.com/YoutubeQuirks/LightWork")
     }
 

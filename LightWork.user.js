@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWork
 // @namespace    YoutubeQuirks
-// @version      0.66
+// @version      0.67
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -44,6 +44,9 @@ This copyright notice must remain at the top of the file and not be modified.
     if (CurrentScript?.hasAttribute("LightWorkLoader")) {
         LightWork_useBackup = CurrentScript.hasAttribute("LightWork_useBackup");
         LightWork_retryInjection = CurrentScript.hasAttribute("LightWork_retryInjection");
+    }
+    else if (window.self === window.top) {
+        alert("LightWork now supports automatic updates. Please visit this URL to install the new loader: https://github.com/YoutubeQuirks/LightWork")
     }
 
     // indicates if we should change the player version in the config data to the latest one (if we aren’t using the backup player)

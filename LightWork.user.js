@@ -1132,6 +1132,11 @@ else {
                         /this\.loaderUrl=[^;]+;/g,
                         'this.loaderUrl="https://example.net";'
                     );
+                    // Fixes a livestream video buffering/looping issue
+                    base = base.replace(
+                        /if\s*\([^{}]*"html5_enable_sabr_on_yt_embeds"\)\)/g,
+                        'if(D.isLivePlayback)'
+                    );
                 }
 
                 // After the base is modified, inject it as a text content script

@@ -692,9 +692,6 @@ function OverrideConfig() {
         "IDENTITY_MEMENTO": {
             "visitor_data": this.data_?.IDENTITY_MEMENTO?.visitor_data
         },
-        "PLAYER_VARS": {
-            "embedded_player_response": this.data_?.PLAYER_VARS?.embedded_player_response
-        },
         "POST_MESSAGE_ORIGIN": "*",
         "DOMAIN_ADMIN_STATE": ""
     };
@@ -714,18 +711,7 @@ function OverrideConfig() {
         }
     }
 
-    if (OriginalValue.PLAYER_VARS.video_id) {
-        this.data_.PLAYER_VARS.video_id = OriginalValue.PLAYER_VARS.video_id;
-    }
-
-    if (OriginalValue.PLAYER_VARS.list) {
-        this.data_.PLAYER_VARS.list = OriginalValue.PLAYER_VARS.list;
-        let OriginalUrl = OriginalValue.INNERTUBE_CONTEXT.client.originalUrl;
-        let listType = (OriginalUrl.match(/[?&]listType=([^&#]*)/) || [])[1] || null;
-        if (listType) {
-            this.data_.PLAYER_VARS.listType = listType;
-        }
-    }
+    this.data_.PLAYER_VARS = OriginalValue?.PLAYER_VARS;
 
     let resp = JSON.parse(this.data_?.PLAYER_VARS?.embedded_player_response);
     let tpr = resp?.embedPreview?.thumbnailPreviewRenderer;
@@ -747,17 +733,9 @@ function OverrideConfig() {
         this.data_.USER_SESSION_ID = OriginalValue.USER_SESSION_ID;
         this.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.authorizedUserIndex = OriginalValue.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.authorizedUserIndex;
         this.data_.LOGIN_INFO = OriginalValue.LOGIN_INFO;
-        this.data_.PLAYER_VARS.user_display_name = OriginalValue.PLAYER_VARS.user_display_name;
-        this.data_.PLAYER_VARS.user_display_image = OriginalValue.PLAYER_VARS.user_display_image;
-        this.data_.PLAYER_VARS.user_display_email = OriginalValue.PLAYER_VARS.user_display_email;
-        this.data_.PLAYER_VARS.user_display_channel_handle = OriginalValue.PLAYER_VARS.user_display_channel_handle;
-        this.data_.PLAYER_VARS.resolve_url_response = OriginalValue.PLAYER_VARS.resolve_url_response;
     }
     if (OriginalValue.VIDEO_ID) {
         this.data_.VIDEO_ID = OriginalValue.VIDEO_ID
-    }
-    if (OriginalValue.PLAYER_VARS.autoplay === true) {
-        this.data_.PLAYER_VARS.autoplay = true;
     }
 }
 
@@ -1134,8 +1112,8 @@ else {
                     );
                     // Fixes a livestream video buffering/looping issue
                     base = base.replace(
-                        /if\s*\([^{}]*"html5_enable_sabr_on_yt_embeds"\)\)/g,
-                        'if(D.isLivePlayback)'
+                        /function\s*\(\s*([A-Za-z_$][\w$]*)\s*\)\s*\{\s*if\s*\([^{}]*"html5_enable_sabr_on_yt_embeds"[^{}]*\)\)/g,
+                        'function($1){if($1.isLivePlayback)'
                     );
                 }
 
@@ -1356,7 +1334,7 @@ else {
                             } catch (error) {
                                 LightWork_error('Failed to get SABR config token ' + error);
                                 // Resolve the promise (this prevents the player from infinitely loading and makes it show the error)
-                                BrowserWindow.parent.parent.SabrRequestTokenReady(token);
+                                BrowserWindow.parent.parent.SabrRequestTokenReady('NoToken');
                             }
                         });
                     }

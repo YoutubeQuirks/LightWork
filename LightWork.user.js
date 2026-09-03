@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWork
 // @namespace    YoutubeQuirks
-// @version      0.69
+// @version      0.7
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -38,6 +38,8 @@ This copyright notice must remain at the top of the file and not be modified.
     let LightWork_retryInjection = true;
 
     //-- END OF USER CONFIG --//
+
+    console.log("[LightWork] The current version is 0.7");
 
     // If LightWork was loaded by using the LightWorkLoader, override the config based on the loader’s attributes
     let CurrentScript = document.currentScript;
@@ -1405,8 +1407,8 @@ else {
     function LightWork_init() {
         // If we are running inside the new Youtube player, but not LightWorkPrivate or LightWorkIgnore
         if (window.location.href.includes('youtube.com/embed/') && !window.location.href.includes('?LightWorkPrivate=1') && !window.location.href.includes('?LightWorkIgnore=1')) {
-            // If the base script already exists, throw a too late error and stop init (impossible to do anything at this point)
-            if (document.querySelector('script[src*="base"]')) {
+            // If the base script has already executed, throw a too late error and stop init (impossible to do anything at this point)
+            if (window._yt_player) {
                 LightWork_error('Too late! Please make sure to run LightWork at document-start.');
                 // if retry injection is enabled, reload the page and retry
                 if (LightWork_retryInjection) {

@@ -1221,6 +1221,12 @@ else {
 
     // Init the proxy iframe or LightWork Youtube private iframe
     function LightWork_privateInit() {
+        // If the head does not exist yet, create it
+        if (!document.head) {
+            let head = document.createElement("head");
+            document.documentElement.appendChild(head);
+        }
+
         // If we are running inside example.net
         if (window.location.href.includes('example.net')) {
             // Create the Youtube iframe
@@ -1380,6 +1386,11 @@ else {
                 n.remove();
             }
         });
+        // If the head does not exist, create it
+        if (!document.head) {
+            let head = document.createElement("head");
+            document.documentElement.appendChild(head);
+        }
         // If the body does not exist, create it and give it our unique ID
         if (!DocumentBody) {
             let body = document.createElement('body');

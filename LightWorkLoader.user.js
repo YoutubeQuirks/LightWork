@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWorkLoader
 // @namespace    YoutubeQuirks
-// @version      1.00
+// @version      1.1
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -17,6 +17,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // @supportURL   https://github.com/YoutubeQuirks/LightWork/issues
 // @icon         https://raw.githubusercontent.com/YoutubeQuirks/LightWork/refs/heads/main/DisplayIcon.png
 // @match        https://*.youtube.com/embed/*
+// @match        https://*.youtube-nocookie.com/embed/*
 // @match        https://example.net/*
 // @run-at       document-start
 // ==/UserScript==

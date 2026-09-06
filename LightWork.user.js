@@ -1115,7 +1115,7 @@ else {
                     // Fixes a livestream video buffering/looping issue
                     base = base.replace(
                         /function\s*\(\s*([A-Za-z_$][\w$]*)\s*\)\s*\{\s*if\s*\([^{}]*"html5_enable_sabr_on_yt_embeds"[^{}]*\)\)/g,
-                        'function($1){if($1.isLivePlayback)'
+                        'function($1){if($1.hlsvp)'
                     );
                 }
 
@@ -1407,21 +1407,43 @@ else {
     function LightWork_init() {
         // If we are running inside the new Youtube player, but not LightWorkPrivate or LightWorkIgnore
         if (window.location.href.includes('youtube.com/embed/') && !window.location.href.includes('?LightWorkPrivate=1') && !window.location.href.includes('?LightWorkIgnore=1')) {
-            // If the base script has already executed, throw a too late error and stop init (impossible to do anything at this point)
-            if (window._yt_player) {
-                LightWork_error('Too late! Please make sure to run LightWork at document-start.');
-                // if retry injection is enabled, reload the page and retry
-                if (LightWork_retryInjection) {
-                    window.location.reload();
+            try {
+                // If we are running inside a UserScript environment, use unsafeWindow, otherwise use the normal window
+                let BrowserWindow = null;
+                if (typeof unsafeWindow !== "undefined") {
+                    BrowserWindow = unsafeWindow;
                 }
-                return;
-            }
-            // If document.body exists, tell the embed init function to not create a new body
-            if (document.body) {
-                LightWork_embedInit(true);
-            }
-            else {
-                LightWork_embedInit(false);
+                else {
+                    BrowserWindow = window;
+                }
+                // If the base script has already executed, throw a too late error and stop init (impossible to do anything at this point)
+                if (BrowserWindow._yt_player) {
+                    LightWork_error('Too late! Please make sure to run LightWork at document-start.');
+                    // If retry injection is enabled, reload the page and retry (prevents cache by using a URL param with a random value)
+                    if (LightWork_retryInjection) {
+                        let url = new URL(location.href);
+                        url.searchParams.set("PreventCache", Math.random().toString(36).slice(2));
+                        location.href = url;
+                    }
+                    return;
+                }
+                // If document.body exists, tell the embed init function to not create a new body
+                if (document.body) {
+                    LightWork_embedInit(true);
+                }
+                else {
+                    LightWork_embedInit(false);
+                }
+                // When something goes wrong, catch it and retry based on the configuration
+            } catch (error) {
+                // Log the error
+                LightWork_error('Something went wrong. Try reloading the page. ', error);
+                // If retry injection is enabled, reload the page and retry (prevents cache by using a URL param with a random value)
+                if (LightWork_retryInjection) {
+                    let url = new URL(location.href);
+                    url.searchParams.set("PreventCache", Math.random().toString(36).slice(2));
+                    location.href = url;
+                }
             }
         }
         // Otherwise, if we are running inside a LightWorkPrivate iframe (ONLY RUNS IF THE BACKUP PLAYER IS ENABLED)

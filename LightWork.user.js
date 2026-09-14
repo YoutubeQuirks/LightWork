@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWork
 // @namespace    YoutubeQuirks
-// @version      0.73
+// @version      0.74
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -40,7 +40,7 @@ This copyright notice must remain at the top of the file and not be modified.
 
     //-- END OF USER CONFIG --//
 
-    console.log("[LightWork] The current version is 0.73");
+    console.log("[LightWork] The current version is 0.74");
 
     // If LightWork was loaded by using the LightWorkLoader, override the config based on the loader’s attributes
     let CurrentScript = document.currentScript;
@@ -1190,7 +1190,7 @@ else {
     function LightWork_createProxyIframe() {
         // Youtube prevents loading the embedded player on a Youtube page, this gets around that
         let iframe = document.createElement('iframe');
-        iframe.src = "https://example.net/?LightWorkPrivate=1";
+        iframe.src = "https://example.net/?LightWorkPrivate=1&location=" + window.location.href;
         iframe.width = "0";
         iframe.height = "0";
         iframe.style.display = "none";
@@ -1234,15 +1234,20 @@ else {
         if (window.location.href.includes('example.net')) {
             // Create the Youtube iframe
             let iframe = document.createElement('iframe');
-            iframe.src = "https://www.youtube.com/embed/?LightWorkPrivate=1";
+            if (window.location.href.includes('youtube.com')) {
+                iframe.src = "https://www.youtube.com/embed/?LightWorkPrivate=1";
+            }
+            else if (window.location.href.includes('youtube-nocookie.com')) {
+                iframe.src = "https://www.youtube-nocookie.com/embed/?LightWorkPrivate=1";
+            }
             iframe.width = "0";
             iframe.height = "0";
             iframe.style.display = "none";
             // Append it to head
             document.head.appendChild(iframe);
         }
-        // Otherwise, if we are running inside youtube.com
-        else if (window.location.href.includes('youtube.com')) {
+        // Otherwise, if we are running inside youtube.com or youtube-nocookie.com
+        else if (window.location.href.includes('youtube.com') || window.location.href.includes('youtube-nocookie.com')) {
             // Define a BrowserWindow variable
             let BrowserWindow = null;
             // If we are running inside a UserScript environment, point it to unsafeWindow
@@ -1301,23 +1306,29 @@ else {
 
                 // Some player versions now fetch the endpoint instead of using XHR
                 else if (url.includes("youtubei/v1/player")) {
-                    if (ChangeSabrToken) {
-                        ChangeSabrToken = false;
-                        try {
-                            // Try to extract the SABR token from it
-                            let response = JSON.parse(this.responseText);
-                            let token = response.playerConfig.mediaCommonConfig.mediaUstreamerRequestConfig.videoPlaybackUstreamerConfig;
-                            // Change the top window variable
-                            BrowserWindow.parent.parent.SabrRequestToken = token;
-                            // Resolve the promise
-                            BrowserWindow.parent.parent.SabrRequestTokenReady(token);
-                            // If the extraction fails, log it for debugging
-                        } catch (error) {
-                            LightWork_error('Failed to get SABR config token ' + error);
-                            // Resolve the promise (this prevents the player from infinitely loading and makes it show the error)
-                            BrowserWindow.parent.parent.SabrRequestTokenReady('NoToken');
+                    return originalFetch.apply(this, args).then(response => {
+                        if (ChangeSabrToken) {
+                            ChangeSabrToken = false;
+
+                            response.clone().json().then(data => {
+                                try {
+                                    // Try to extract the SABR token from it
+                                    let token = data.playerConfig.mediaCommonConfig.mediaUstreamerRequestConfig.videoPlaybackUstreamerConfig;
+                                    // Change the top window variable
+                                    BrowserWindow.parent.parent.SabrRequestToken = token;
+                                    // Resolve the promise
+                                    BrowserWindow.parent.parent.SabrRequestTokenReady(token);
+                                    // If the extraction fails, log it for debugging
+                                } catch (error) {
+                                    LightWork_error('Failed to get SABR config token ' + error);
+                                    // Resolve the promise (this prevents the player from infinitely loading and makes it show the error)
+                                    BrowserWindow.parent.parent.SabrRequestTokenReady('NoToken');
+                                }
+                            });
                         }
-                    }
+
+                        return response;
+                    });
                 }
 
                 // otherwise, if its a different fetch, let the original API handle it

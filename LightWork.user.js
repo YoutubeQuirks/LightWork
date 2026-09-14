@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWork
 // @namespace    YoutubeQuirks
-// @version      0.72
+// @version      0.73
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -40,7 +40,7 @@ This copyright notice must remain at the top of the file and not be modified.
 
     //-- END OF USER CONFIG --//
 
-    console.log("[LightWork] The current version is 0.72");
+    console.log("[LightWork] The current version is 0.73");
 
     // If LightWork was loaded by using the LightWorkLoader, override the config based on the loader’s attributes
     let CurrentScript = document.currentScript;
@@ -1297,6 +1297,27 @@ else {
 
                     // Act like the fetch succeeded and prevent it
                     return Promise.resolve();
+                }
+
+                // Some player versions now fetch the endpoint instead of using XHR
+                else if (url.includes("youtubei/v1/player")) {
+                    if (ChangeSabrToken) {
+                        ChangeSabrToken = false;
+                        try {
+                            // Try to extract the SABR token from it
+                            let response = JSON.parse(this.responseText);
+                            let token = response.playerConfig.mediaCommonConfig.mediaUstreamerRequestConfig.videoPlaybackUstreamerConfig;
+                            // Change the top window variable
+                            BrowserWindow.parent.parent.SabrRequestToken = token;
+                            // Resolve the promise
+                            BrowserWindow.parent.parent.SabrRequestTokenReady(token);
+                            // If the extraction fails, log it for debugging
+                        } catch (error) {
+                            LightWork_error('Failed to get SABR config token ' + error);
+                            // Resolve the promise (this prevents the player from infinitely loading and makes it show the error)
+                            BrowserWindow.parent.parent.SabrRequestTokenReady('NoToken');
+                        }
+                    }
                 }
 
                 // otherwise, if its a different fetch, let the original API handle it

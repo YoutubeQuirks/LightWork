@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWorkLoader
 // @namespace    YoutubeQuirks
-// @version      1.1
+// @version      1.2
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -100,7 +100,7 @@ This copyright notice must remain at the top of the file and not be modified.
     }
 
     // If we are running inside the new Youtube player, but not LightWorkPrivate or LightWorkIgnore
-    if (window.location.href.includes('youtube.com/embed/') && !window.location.href.includes('?LightWorkPrivate=1') && !window.location.href.includes('?LightWorkIgnore=1')) {
+    if ((window.location.href.includes('youtube.com/embed/') || window.location.href.includes('youtube-nocookie.com/embed/')) && !window.location.href.includes('?LightWorkPrivate=1') && !window.location.href.includes('?LightWorkIgnore=1')) {
         // Fetch the main LightWork script and block the main thread
         LightWorkLoader_fetch(true);
     }

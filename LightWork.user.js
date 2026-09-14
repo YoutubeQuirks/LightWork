@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWork
 // @namespace    YoutubeQuirks
-// @version      0.75
+// @version      0.76
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -40,7 +40,7 @@ This copyright notice must remain at the top of the file and not be modified.
 
     //-- END OF USER CONFIG --//
 
-    console.log("[LightWork] The current version is 0.75");
+    console.log("[LightWork] The current version is 0.76");
 
     // If LightWork was loaded by using the LightWorkLoader, override the config based on the loader’s attributes
     let CurrentScript = document.currentScript;
@@ -48,7 +48,7 @@ This copyright notice must remain at the top of the file and not be modified.
         LightWork_useBackup = CurrentScript.hasAttribute("LightWork_useBackup");
         LightWork_retryInjection = CurrentScript.hasAttribute("LightWork_retryInjection");
     }
-    else if ((window.location.href.includes('youtube.com/embed/') || window.location.href.includes('youtube-nocookie.com/embed/')) && !window.location.href.includes('?LightWorkPrivate=1') && !window.location.href.includes('?LightWorkIgnore=1')) {
+    else if ((window.location.href.includes('youtube.com/embed/') || window.location.href.includes('youtube-nocookie.com/embed/')) && !window.location.href.includes('LightWorkPrivate=1') && !window.location.href.includes('LightWorkIgnore=1')) {
         alert("LightWork now supports automatic updates. Please visit this URL to install the new loader: https://github.com/YoutubeQuirks/LightWork")
     }
 
@@ -1439,7 +1439,7 @@ else {
     // Init LightWork
     function LightWork_init() {
         // If we are running inside the new Youtube player, but not LightWorkPrivate or LightWorkIgnore
-        if ((window.location.href.includes('youtube.com/embed/') || window.location.href.includes('youtube-nocookie.com/embed/')) && !window.location.href.includes('?LightWorkPrivate=1') && !window.location.href.includes('?LightWorkIgnore=1')) {
+        if ((window.location.href.includes('youtube.com/embed/') || window.location.href.includes('youtube-nocookie.com/embed/')) && !window.location.href.includes('LightWorkPrivate=1') && !window.location.href.includes('LightWorkIgnore=1')) {
             try {
                 // If we are running inside a UserScript environment, use unsafeWindow, otherwise use the normal window
                 let BrowserWindow = null;
@@ -1480,12 +1480,12 @@ else {
             }
         }
         // Otherwise, if we are running inside a LightWorkPrivate iframe (ONLY RUNS IF THE BACKUP PLAYER IS ENABLED)
-        else if ((window.self !== window.top) && window.location.href.includes('?LightWorkPrivate=1')) {
+        else if ((window.self !== window.top) && window.location.href.includes('LightWorkPrivate=1')) {
             // Init LightWorkPrivate
             LightWork_privateInit();
         }
         // Otherwise, if we are running inside a LightWorkIgnore page
-        else if (window.location.href.includes('?LightWorkIgnore=1')) {
+        else if (window.location.href.includes('LightWorkIgnore=1')) {
             // log it
             // console.warn('Ignoring the current embed URL. LightWork was not started.', window.location.href);
         }

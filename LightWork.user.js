@@ -1068,7 +1068,7 @@ else {
                     // Fix the broken line in the old player so it sets it correctly
                     base = base.replace(
                         /this\.loaderUrl\s*=\s*U\s*\?\s*this\.J\s*\|\|\s*Ovs\(this\)\s*&&\s*U\.loaderUrl\s*\?\s*U\.loaderUrl\s*\|\|\s*""\s*:\s*this\.b2\s*:\s*this\.J\s*\|\|\s*Ovs\(this\)\s*&&\s*k\.loaderUrl\s*\?\s*n4\("",\s*k\.loaderUrl\)\s*:\s*this\.b2\s*;/,
-                        'this.loaderUrl = document.referrer;'
+                        'this.loaderUrl = "https://example.net";'
                     );
                     // Extract the signatureTimestamp from the new base URL and replace the one in the old base with it
                     // This is something like a token, that Youtube uses to tell if you are making a valid request to their player endpoint

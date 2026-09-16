@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWork
 // @namespace    YoutubeQuirks
-// @version      0.76
+// @version      0.77
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -40,7 +40,7 @@ This copyright notice must remain at the top of the file and not be modified.
 
     //-- END OF USER CONFIG --//
 
-    console.log("[LightWork] The current version is 0.76");
+    console.log("[LightWork] The current version is 0.77");
 
     // If LightWork was loaded by using the LightWorkLoader, override the config based on the loader’s attributes
     let CurrentScript = document.currentScript;
@@ -1021,7 +1021,9 @@ else {
                         if (NewBaseURL) {
                             clearInterval(wait);
                             // Extract the language from the URL
-                            LightWorkLanguage = NewBaseURL.split('/').slice(-2)[0];
+                            if (!LightWorkLanguage) {
+                                LightWorkLanguage = NewBaseURL.split('/').slice(-2)[0];
+                            }
                             // Extract the player version from the URL
                             let PlayerVersion = null;
                             if (!UseBackup) {

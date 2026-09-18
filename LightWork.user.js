@@ -209,7 +209,10 @@ This copyright notice must remain at the top of the file and not be modified.
         // make sure our script isn’t removed by the init observer
         ConfigOverride.setAttribute('LightWork', '');
         ConfigOverride.textContent = String.raw`
+        window.YTConfigCreated = new Promise(r => window.YTConfigCreatedResolve = r);
 function OverrideConfig() {
+    window.YTConfigCreatedResolve();
+    window.YTConfigWasCreated = true;
     let OriginalValue = structuredClone(this.data_);
     window.NewBaseURL = OriginalValue?.WEB_PLAYER_CONTEXT_CONFIGS?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.jsUrl;
     this.data_ = {
@@ -1070,7 +1073,7 @@ else {
                     // Fix the broken line in the old player so it sets it correctly
                     base = base.replace(
                         /this\.loaderUrl\s*=\s*U\s*\?\s*this\.J\s*\|\|\s*Ovs\(this\)\s*&&\s*U\.loaderUrl\s*\?\s*U\.loaderUrl\s*\|\|\s*""\s*:\s*this\.b2\s*:\s*this\.J\s*\|\|\s*Ovs\(this\)\s*&&\s*k\.loaderUrl\s*\?\s*n4\("",\s*k\.loaderUrl\)\s*:\s*this\.b2\s*;/,
-                        'this.loaderUrl = "https://example.net";'
+                        'this.loaderUrl = document.referrer;'
                     );
                     // Extract the signatureTimestamp from the new base URL and replace the one in the old base with it
                     // This is something like a token, that Youtube uses to tell if you are making a valid request to their player endpoint
@@ -1113,7 +1116,7 @@ else {
                     // The reason we use example.net as a fixed referrer value is to avoid ad loading and edge cases on sites like Reddit
                     base = base.replace(
                         /this\.loaderUrl=[^;]+;/g,
-                        'this.loaderUrl="https://example.net";'
+                        'this.loaderUrl=document.referrer;'
                     );
                     // Fixes a livestream video buffering/looping issue
                     base = base.replace(
@@ -1164,7 +1167,21 @@ else {
         EmbedScript.onload = () => {
             FetchBases(LightWork_useBackup);
         };
-        document.body.appendChild(EmbedScript);
+        let BrowserWindow = null;
+        if (typeof unsafeWindow !== "undefined") {
+            BrowserWindow = unsafeWindow;
+        }
+        else {
+            BrowserWindow = window;
+        }
+        if (BrowserWindow.YTConfigWasCreated) {
+            document.body.appendChild(EmbedScript);
+        }
+        else {
+            BrowserWindow.YTConfigCreated.then(() => {
+                document.body.appendChild(EmbedScript);
+            });
+        }
 
         // (can be removed)
         let s8 = document.createElement('script');

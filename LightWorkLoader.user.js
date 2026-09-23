@@ -40,6 +40,23 @@ This copyright notice must remain at the top of the file and not be modified.
 
     //-- END OF USER CONFIG --//
 
+    // Expected SHA-384 digest (hex) of the current LightWork.user.js release. Used to verify
+    // integrity of the fetched remote script before it is ever executed (CWE-494 mitigation).
+    const LightWork_expectedHash = "de2ddc8c9cb37b856bcb9570b539d25a79324867b98ccfdcf5dd56225836cdd6a9687d23af131342016beb02da3f838f";
+
+    // Hashes the fetched script text and only appends/executes it if the digest matches the
+    // expected value, preventing execution of tampered or unexpected remote code.
+    async function LightWork_verifyAndRun(responseText, script) {
+        let digestBuffer = await crypto.subtle.digest("SHA-384", new TextEncoder().encode(responseText));
+        let digestHex = Array.from(new Uint8Array(digestBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+        if (digestHex !== LightWork_expectedHash) {
+            console.error("LightWork: integrity check failed for fetched script, refusing to execute it.");
+            return;
+        }
+        script.textContent = responseText;
+        document.documentElement.appendChild(script);
+    }
+
     if (window.trustedTypes && window.trustedTypes.createPolicy && !window.trustedTypes.defaultPolicy) {
         window.trustedTypes.createPolicy('default', {
             createHTML: string => string,
@@ -76,15 +93,14 @@ This copyright notice must remain at the top of the file and not be modified.
                 script.setAttribute("LightWork_retryInjection", "");
             }
 
-            script.textContent = xhr.responseText;
-            document.documentElement.appendChild(script);
+            LightWork_verifyAndRun(xhr.responseText, script);
         }
         // Otherwise, we don’t need to block the main thread (use fetch instead)
         else {
             fetch("https://raw.githubusercontent.com/YoutubeQuirks/LightWork/refs/heads/main/LightWork.user.js")
                 .then(r => r.text())
                 .then(responseText => {
-                    // Append it as a script tag and execute it
+                    // Append it as a script tag and execute it, after verifying its integrity
                     let script = document.createElement("script");
                     if (LightWork_useBackup) {
                         script.setAttribute("LightWork_useBackup", "");
@@ -93,8 +109,7 @@ This copyright notice must remain at the top of the file and not be modified.
                     if (LightWork_retryInjection) {
                         script.setAttribute("LightWork_retryInjection", "");
                     }
-                    script.textContent = responseText;
-                    document.documentElement.appendChild(script);
+                    LightWork_verifyAndRun(responseText, script);
                 });
         }
     }

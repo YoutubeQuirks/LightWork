@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWork
 // @namespace    YoutubeQuirks
-// @version      0.78
+// @version      0.79
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -40,7 +40,7 @@ This copyright notice must remain at the top of the file and not be modified.
 
     //-- END OF USER CONFIG --//
 
-    console.log("[LightWork] The current version is 0.78");
+    console.log("[LightWork] The current version is 0.79");
 
     // If LightWork was loaded by using the LightWorkLoader, override the config based on the loader’s attributes
     let CurrentScript = document.currentScript;
@@ -663,6 +663,7 @@ function OverrideConfig() {
                 "canaryState": "none",
                 "enableCsiLogging": true,
                 "disableAutonav": false,
+                "loaderUrl": this.data_?.WEB_PLAYER_CONTEXT_CONFIGS?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.loaderUrl,
                 "isEmbed": true,
                 "disableCastApi": false,
                 "serializedEmbedConfig": "{}",
@@ -1073,7 +1074,7 @@ else {
                     // Fix the broken line in the old player so it sets it correctly
                     base = base.replace(
                         /this\.loaderUrl\s*=\s*U\s*\?\s*this\.J\s*\|\|\s*Ovs\(this\)\s*&&\s*U\.loaderUrl\s*\?\s*U\.loaderUrl\s*\|\|\s*""\s*:\s*this\.b2\s*:\s*this\.J\s*\|\|\s*Ovs\(this\)\s*&&\s*k\.loaderUrl\s*\?\s*n4\("",\s*k\.loaderUrl\)\s*:\s*this\.b2\s*;/,
-                        'this.loaderUrl = document.referrer;'
+                        'this.loaderUrl = ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.loaderUrl;'
                     );
                     // Extract the signatureTimestamp from the new base URL and replace the one in the old base with it
                     // This is something like a token, that Youtube uses to tell if you are making a valid request to their player endpoint
@@ -1116,7 +1117,7 @@ else {
                     // The reason we use example.net as a fixed referrer value is to avoid ad loading and edge cases on sites like Reddit
                     base = base.replace(
                         /this\.loaderUrl=[^;]+;/g,
-                        'this.loaderUrl=document.referrer;'
+                        'this.loaderUrl=ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.loaderUrl;'
                     );
                     // Fixes a livestream video buffering/looping issue
                     base = base.replace(

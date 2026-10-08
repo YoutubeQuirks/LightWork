@@ -37,6 +37,14 @@ LightWork allows configuration via URL parameters and UserScript flags.
 1.) `LightWork_useBackup`: The backup player will be loaded instead of the main one.  
 2.) `LightWork_retryInjection`: If LightWork runs too late and injection fails, this flag will reload the page and retry.
 
+#### Compatibility:
+LightWork dispatches an event called `LightWorkLoaded` on `window` when the player finishes loading. You need to define the listener at documet-start and your code needs to run inside the iframe. Example code:  
+```js
+window.addEventListener("LightWorkLoaded", () => {
+  console.log("LightWork loaded!");
+});
+```
+
 
 ### Public Project Usage
 You are allowed to use LightWork in your own project (e.g. a browser extension), as long as it follows the [LICENSE](LICENSE) file.

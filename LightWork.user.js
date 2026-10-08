@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWork
 // @namespace    YoutubeQuirks
-// @version      0.79
+// @version      0.80
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -40,7 +40,7 @@ This copyright notice must remain at the top of the file and not be modified.
 
     //-- END OF USER CONFIG --//
 
-    console.log("[LightWork] The current version is 0.79");
+    console.log("[LightWork] The current version is 0.80");
 
     // If LightWork was loaded by using the LightWorkLoader, override the config based on the loader’s attributes
     let CurrentScript = document.currentScript;
@@ -1070,12 +1070,6 @@ else {
                     // Defines EarlyNewPlayerLoadVideo function that will reset the variables and promises
                     // Afterward, if the NewPlayerLoadVideo function isn’t ready yet, retry
                     base = `function EarlyNewPlayerLoadVideo(VideoId){if(window.SabrRequestTokenReady)window.SabrRequestTokenReady(Promise.reject("cancelled"));if(window.GoogleVideoMediaUrlReady)window.GoogleVideoMediaUrlReady(Promise.reject("cancelled"));window.SabrRequestToken=null;window.GoogleVideoMediaUrl=null;window.GoogleVideoMediaUrlPromise=new Promise(resolve=>{window.GoogleVideoMediaUrlReady=resolve;});window.SabrRequestTokenPromise=new Promise(resolve=>{window.SabrRequestTokenReady=resolve;});if(typeof NewPlayerLoadVideo==="function")return NewPlayerLoadVideo(VideoId);let i=setInterval(()=>{if(typeof NewPlayerLoadVideo==="function"){clearInterval(i);NewPlayerLoadVideo(VideoId)}},1)}\n${base}`;
-                    // Youtube now requires embeds to send the referrer, which is the URL that loaded the player
-                    // Fix the broken line in the old player so it sets it correctly
-                    base = base.replace(
-                        /this\.loaderUrl\s*=\s*U\s*\?\s*this\.J\s*\|\|\s*Ovs\(this\)\s*&&\s*U\.loaderUrl\s*\?\s*U\.loaderUrl\s*\|\|\s*""\s*:\s*this\.b2\s*:\s*this\.J\s*\|\|\s*Ovs\(this\)\s*&&\s*k\.loaderUrl\s*\?\s*n4\("",\s*k\.loaderUrl\)\s*:\s*this\.b2\s*;/,
-                        'this.loaderUrl = ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.loaderUrl;'
-                    );
                     // Extract the signatureTimestamp from the new base URL and replace the one in the old base with it
                     // This is something like a token, that Youtube uses to tell if you are making a valid request to their player endpoint
                     let timestamp = newBase.match(/signatureTimestamp:(\d+)/)?.[1];
@@ -1113,12 +1107,6 @@ else {
                 }
 
                 else {
-                    // Youtube now requires a valid referrer when loading the video
-                    // The reason we use example.net as a fixed referrer value is to avoid ad loading and edge cases on sites like Reddit
-                    base = base.replace(
-                        /this\.loaderUrl=[^;]+;/g,
-                        'this.loaderUrl=ytcfg.data_.WEB_PLAYER_CONTEXT_CONFIGS.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER.loaderUrl;'
-                    );
                     // Fixes a livestream video buffering/looping issue
                     base = base.replace(
                         /function\s*\(\s*([A-Za-z_$][\w$]*)\s*\)\s*\{\s*if\s*\([^{}]*"html5_enable_sabr_on_yt_embeds"[^{}]*\)\)/g,
@@ -1142,6 +1130,13 @@ else {
                         writeEmbed();
                     `;
                 document.body.appendChild(s6);
+                // Dispatch an event indicating that LightWork has loaded
+                if (typeof unsafeWindow !== "undefined") {
+                    unsafeWindow.dispatchEvent(new Event('LightWorkLoaded'));
+                }
+                else {
+                    window.dispatchEvent(new Event('LightWorkLoaded'));
+                }
                 // If the base failed to fetch, log it for debugging
             }).catch(error => {
                 LightWork_error('Failed to fetch base.js. Loading the backup player... ' + error);
@@ -1490,7 +1485,7 @@ else {
                 // When something goes wrong, catch it and retry based on the configuration
             } catch (error) {
                 // Log the error
-                LightWork_error('Something went wrong. Try reloading the page. ', error);
+                LightWork_error('Something went wrong. Try reloading the page. ' + error);
                 // If retry injection is enabled, reload the page and retry (prevents cache by using a URL param with a random value)
                 if (LightWork_retryInjection) {
                     let url = new URL(location.href);

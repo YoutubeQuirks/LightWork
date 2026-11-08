@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWork
 // @namespace    YoutubeQuirks
-// @version      0.80
+// @version      0.81
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -30,7 +30,7 @@ This copyright notice must remain at the top of the file and not be modified.
 
     //-- START OF USER CONFIG --//
 
-    // WARNING: THIS CONFIG IS IGNORED WHEN LIGHTWORK IS LOADED BY USING THE LIGHTWORKLOADER SCRIPT
+    // WARNING: THIS CONFIG IS IGNORED WHEN LIGHTWORK IS LOADED BY THE LIGHTWORKLOADER SCRIPT
 
     // LightWork now loads the latest embed player build with the old UI instead of loading older builds. The old build init technique is only kept as backup.
     // indicates if the backup player should be loaded
@@ -40,26 +40,13 @@ This copyright notice must remain at the top of the file and not be modified.
 
     //-- END OF USER CONFIG --//
 
-    console.log("[LightWork] The current version is 0.80");
+    console.log("[LightWork] The current version is 0.81");
 
-    // If LightWork was loaded by using the LightWorkLoader, override the config based on the loader’s attributes
+    // If LightWork was loaded by the LightWorkLoader, override the config based on the loader’s attributes
     let CurrentScript = document.currentScript;
     if (CurrentScript?.hasAttribute("LightWorkLoader")) {
         LightWork_useBackup = CurrentScript.hasAttribute("LightWork_useBackup");
         LightWork_retryInjection = CurrentScript.hasAttribute("LightWork_retryInjection");
-    }
-    else if ((window.location.href.includes('youtube.com/embed/') || window.location.href.includes('youtube-nocookie.com/embed/')) && !window.location.href.includes('LightWorkPrivate=1') && !window.location.href.includes('LightWorkIgnore=1')) {
-        alert("LightWork now supports automatic updates. Please visit this URL to install the new loader: https://github.com/YoutubeQuirks/LightWork")
-    }
-
-    // indicates if we should change the player version in the config data to the latest one (if we aren’t using the backup player)
-    if (!LightWork_useBackup) {
-        if (typeof unsafeWindow !== "undefined") {
-            unsafeWindow.LightWork_changePlayerVersion = true;
-        }
-        else {
-            window.LightWork_changePlayerVersion = true;
-        }
     }
 
     // Disables TrustedTypes (required for dynamic script injection)
@@ -743,6 +730,12 @@ function OverrideConfig() {
     }
     if (OriginalValue.VIDEO_ID) {
         this.data_.VIDEO_ID = OriginalValue.VIDEO_ID
+    }
+
+    for (let key of Object.keys(OriginalValue)) {
+        if (!(key in this.data_)) {
+            this.data_[key] = OriginalValue[key];
+        }
     }
 }
 
@@ -1447,6 +1440,17 @@ else {
             body.id = "LightWorkBody";
             document.documentElement.appendChild(body);
         }
+
+        // if we are not using the backup player, change the player version to the latest one in the config data
+        if (!LightWork_useBackup) {
+            if (typeof unsafeWindow !== "undefined") {
+                unsafeWindow.LightWork_changePlayerVersion = true;
+            }
+            else {
+                window.LightWork_changePlayerVersion = true;
+            }
+        }
+
         // Init the old Youtube player
         LightWork_initOldPlayer();
     }

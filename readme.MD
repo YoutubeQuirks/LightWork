@@ -44,10 +44,43 @@ window.addEventListener("LightWorkLoaded", () => {
   console.log("LightWork loaded!");
 });
 ```
+NOTE: This does not mean that DOM elements, such as `.html5-video-player`, will already be available. Instead, the event tells you that LightWork has successfully completed its job and that the old player has started loading.
 
 
 ### Public Project Usage
-You are allowed to use LightWork in your own project (e.g. a browser extension), as long as it follows the [LICENSE](LICENSE) file.
+You are allowed to use LightWork in your own project (e.g. a browser extension), as long as it follows the [LICENSE](LICENSE) file.  
+#### Extension manifest example:
+```json
+"content_scripts": [
+  {
+    "matches": [
+      "https://*.youtube.com/embed/*",
+      "https://*.youtube-nocookie.com/embed/*",
+      "https://example.net/*"
+    ],
+    "js": ["lightwork.js"],
+    "run_at": "document_start",
+    "world": "MAIN",
+    "all_frames": true
+  }
+]
+```  
+NOTE: If you want a 100% chance that LightWork is never too late, you can use the declarativeNetRequest Chrome Extension API to block certain player scripts from loading. Required rules.json:  
+```json
+[
+{
+  "id": 1,
+  "priority": 1,
+  "action": {
+    "type": "block"
+  },
+  "condition": {
+    "regexFilter": "/ytembeds/|player_embed_es6",
+    "initiatorDomains": ["youtube.com"]
+  }
+}
+]
+```
 
 ## Issues
 If you encounter any issues or bugs, please create an issue on Github by visiting this URL: https://github.com/YoutubeQuirks/LightWork/issues.

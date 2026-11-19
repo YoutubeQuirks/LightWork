@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWorkLoader
 // @namespace    YoutubeQuirks
-// @version      1.3
+// @version      1.4
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -31,6 +31,11 @@ This copyright notice must remain at the top of the file and not be modified.
     'use strict';
 
     //-- START OF USER CONFIG --//
+
+    // When this is true, the embedded player will be able to play videos it normally can‘t. 
+    // This includes videos with embedding disabled, custom trade marks (like FIFA) and more.
+    // WARNING: THIS OPTION GENERALLY CONFLICTS WITH ADBLOCKERS. You need to add an exception for youtube.com/embed/ in order to use this
+    let LightWork_playRestrictedVideos = true;
 
     // LightWork now loads the latest embed player build with the old UI instead of loading older builds. The old build init technique is only kept as backup.
     // indicates if the backup player should be loaded
@@ -76,6 +81,10 @@ This copyright notice must remain at the top of the file and not be modified.
                 script.setAttribute("LightWork_retryInjection", "");
             }
 
+            if (LightWork_playRestrictedVideos) {
+                script.setAttribute("LightWork_playRestrictedVideos", "");
+            }
+
             script.textContent = xhr.responseText;
             document.documentElement.appendChild(script);
         }
@@ -86,6 +95,7 @@ This copyright notice must remain at the top of the file and not be modified.
                 .then(responseText => {
                     // Append it as a script tag and execute it
                     let script = document.createElement("script");
+                    script.setAttribute("LightWorkLoader", "");
                     if (LightWork_useBackup) {
                         script.setAttribute("LightWork_useBackup", "");
                     }
@@ -93,6 +103,11 @@ This copyright notice must remain at the top of the file and not be modified.
                     if (LightWork_retryInjection) {
                         script.setAttribute("LightWork_retryInjection", "");
                     }
+
+                    if (LightWork_playRestrictedVideos) {
+                        script.setAttribute("LightWork_playRestrictedVideos", "");
+                    }
+
                     script.textContent = responseText;
                     document.documentElement.appendChild(script);
                 });

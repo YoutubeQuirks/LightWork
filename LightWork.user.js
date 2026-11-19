@@ -8,7 +8,7 @@ This copyright notice must remain at the top of the file and not be modified.
 // ==UserScript==
 // @name         LightWork
 // @namespace    YoutubeQuirks
-// @version      0.81
+// @version      0.82
 // @description  Returns the old Embedded player UI. The script is in beta, bugs and edge cases may occur.
 // @author       YoutubeQuirks
 // @homepage     https://github.com/YoutubeQuirks/LightWork
@@ -32,6 +32,16 @@ This copyright notice must remain at the top of the file and not be modified.
 
     // WARNING: THIS CONFIG IS IGNORED WHEN LIGHTWORK IS LOADED BY THE LIGHTWORKLOADER SCRIPT
 
+    // ** NEW ** //
+
+    // When this is true, the embedded player will be able to play videos it normally can‘t. 
+    // This includes videos with embedding disabled, custom trade marks (like FIFA) and more.
+    // WARNING: THIS OPTION GENERALLY CONFLICTS WITH ADBLOCKERS. You need to add an exception for youtube.com/embed/ in order to use this
+    // DOES NOT WORK WITH THE BACKUP PLAYER
+    let LightWork_playRestrictedVideos = true;
+
+    // ** NEW ** //
+
     // LightWork now loads the latest embed player build with the old UI instead of loading older builds. The old build init technique is only kept as backup.
     // indicates if the backup player should be loaded
     let LightWork_useBackup = false;
@@ -40,7 +50,7 @@ This copyright notice must remain at the top of the file and not be modified.
 
     //-- END OF USER CONFIG --//
 
-    console.log("[LightWork] The current version is 0.81");
+    console.log("[LightWork] The current version is 0.82");
 
     // If LightWork was loaded by the LightWorkLoader, override the config based on the loader’s attributes
     let CurrentScript = document.currentScript;
@@ -1163,11 +1173,20 @@ else {
         else {
             BrowserWindow = window;
         }
+
+        // Append the embed-player script after the config was created
         if (BrowserWindow.YTConfigWasCreated) {
+            // Allow restricted videos (e.g. the ones with embedding disabled) to play normally
+            if (LightWork_playRestrictedVideos) {
+                LightWork_allowRestrictedVideos();
+            }
             document.body.appendChild(EmbedScript);
         }
         else {
             BrowserWindow.YTConfigCreated.then(() => {
+                if (LightWork_playRestrictedVideos) {
+                    LightWork_allowRestrictedVideos();
+                }
                 document.body.appendChild(EmbedScript);
             });
         }
@@ -1193,6 +1212,255 @@ else {
     </div>
     `;
         document.body.appendChild(noscript);
+    }
+
+    // Allows restricted videos (like the ones with embedding disabled) to play normally
+    // WARNING: THIS OPTION GENERALLY CONFLICTS WITH ADBLOCKERS. You need to add an exception for youtube.com/embed/ in order to use this
+    let RestrictedVideos = [];
+    function LightWork_allowRestrictedVideos() {
+        // Define a BrowserWindow variable
+        let BrowserWindow = null;
+        // If we are running inside a UserScript environment, point it to unsafeWindow
+        if (typeof unsafeWindow !== "undefined") {
+            BrowserWindow = unsafeWindow;
+        }
+        // Otherwise, point it to the normal browser window
+        else {
+            BrowserWindow = window;
+        }
+
+        // Some player versions use fetch() and some use XMLHttpRequest to access the player endpoint. We patch both.
+
+        // Save the original browser fetch
+        let originalFetch = BrowserWindow.fetch;
+
+        // Monkey patch the fetch() API used by the player to fetch the player endpoint
+        BrowserWindow.fetch = function (...args) {
+            // Get the URL arg
+            let url = String(args[0]?.url || args[0]);
+            // If its the player endpoint URL
+            if (url.includes("youtubei/v1/player")) {
+                // Intercept outgoing requests
+                try {
+                    let player = document.querySelector("#movie_player") || document.querySelector(".html5-video-player");
+                    let CurrentVideoId = player.getVideoData().video_id;
+                    if (RestrictedVideos.includes(CurrentVideoId)) {
+                        let request = args[0];
+                        // Clone the request for the modification
+                        return request.clone().arrayBuffer().then(async originalBody => {
+
+                            // Decompress GZIP
+                            let decompressed = new Response(
+                                new Blob([originalBody]).stream().pipeThrough(
+                                    new DecompressionStream("gzip")
+                                )
+                            );
+
+                            let body = await decompressed.json();
+
+                            // make sure its really the right request
+                            let RequestVideoID = body.videoId;
+                            if (RequestVideoID && RestrictedVideos.includes(RequestVideoID)) {
+                                // Change the client name from "WEB_EMBEDDED_PLAYER" to "WEB"
+                                body.context.client.clientName = "WEB";
+
+                                let modifiedBody = new TextEncoder().encode(JSON.stringify(body));
+
+                                // Compress GZIP again
+                                let compressedBody = await new Response(
+                                    new Blob([modifiedBody]).stream().pipeThrough(
+                                        new CompressionStream("gzip")
+                                    )
+                                ).arrayBuffer();
+
+                                // Send the edited request to the server
+                                args[0] = new Request(request, {
+                                    body: compressedBody
+                                });
+
+                                return originalFetch.apply(this, args);
+                            }
+
+                            return originalFetch.apply(this, args);
+                        });
+                    }
+                } catch (error) {
+                    LightWork_error("Failed to modify player request " + error);
+                }
+
+                // Intercept incoming requests
+                return originalFetch.apply(this, args).then(response => {
+
+                    response.clone().json().then(data => {
+                        try {
+                            let PlayerStatus = data.playabilityStatus.status;
+                            // If the video is unplayable in our player, load it via our custom function
+                            if (PlayerStatus === "UNPLAYABLE") {
+                                LightWork_loadRestrictedVideo();
+                            }
+                            // If the extraction fails, log it for debugging
+                        } catch (error) {
+                            LightWork_error('Failed to check for a restricted video ' + error);
+                        }
+                    });
+
+                    return response;
+                });
+            }
+
+            // otherwise, if its a different fetch, let the original API handle it
+            return originalFetch.apply(this, args);
+        };
+
+        // Save the original XMLHttpRequest functions
+        let originalOpen = BrowserWindow.XMLHttpRequest.prototype.open;
+        let originalSend = BrowserWindow.XMLHttpRequest.prototype.send;
+
+        // Monkey patch the XMLHttpRequest API used by the player to fetch the player endpoint
+        BrowserWindow.XMLHttpRequest.prototype.open = function (method, url, ...args) {
+            // Store the URL arg
+            this.YoutubePlayerUrl = String(url);
+
+            // Call the original open
+            return originalOpen.call(this, method, url, ...args);
+        };
+
+        // Intercept outgoing and incoming XMLHttpRequest requests
+        BrowserWindow.XMLHttpRequest.prototype.send = function (...args) {
+            // Get the URL
+            let xhr = this;
+            let url = xhr.YoutubePlayerUrl || "";
+
+            // If its the player endpoint URL
+            if (url.includes("youtubei/v1/player")) {
+
+                // Intercept outgoing requests
+                try {
+                    let player = BrowserWindow.document.querySelector("#movie_player") || BrowserWindow.document.querySelector(".html5-video-player");
+
+                    let CurrentVideoId = player?.getVideoData()?.video_id;
+
+                    if (CurrentVideoId && RestrictedVideos.includes(CurrentVideoId)) {
+                        let originalBody = args[0];
+
+                        // Clone the request body for modification
+                        if (originalBody) {
+                            // Parse the request body normally (uncompressed JSON)
+                            new Response(originalBody).json().then(body => {
+
+                                // make sure its really the right request
+                                let RequestVideoID = body.videoId;
+
+                                if (RequestVideoID && RestrictedVideos.includes(RequestVideoID)) {
+                                    // Change the client name from "WEB_EMBEDDED_PLAYER" to "WEB"
+                                    body.context.client.clientName = "WEB";
+
+                                    // Encode the modified request
+                                    return new TextEncoder().encode(JSON.stringify(body));
+                                }
+
+                                return originalBody;
+
+                            }).then(modifiedBody => {
+
+                                // Send the edited request to the server
+                                args[0] = modifiedBody;
+
+                                // Send the request
+                                originalSend.apply(xhr, args);
+
+                            }).catch(error => {
+                                LightWork_error("Failed to modify player request " + error);
+
+                                // Send the original request if modification fails
+                                originalSend.apply(xhr, args);
+                            });
+
+                            // Intercept incoming requests
+                            xhr.addEventListener("load", function () {
+                                try {
+                                    let data = JSON.parse(this.responseText);
+
+                                    let PlayerStatus = data.playabilityStatus.status;
+
+                                    // If the video is unplayable in our player, load it via our custom function
+                                    if (PlayerStatus === "UNPLAYABLE") {
+                                        LightWork_loadRestrictedVideo();
+                                    }
+
+                                    // If the extraction fails, log it for debugging
+                                } catch (error) {
+                                    LightWork_error('Failed to check for a restricted video ' + error);
+                                }
+                            });
+
+                            // Prevent the original send from executing immediately
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    LightWork_error("Failed to modify player request " + error);
+                };
+
+                // Intercept incoming requests
+                xhr.addEventListener("load", function () {
+                    try {
+                        let data = JSON.parse(this.responseText);
+
+                        let PlayerStatus = data.playabilityStatus.status;
+
+                        // If the video is unplayable in our player, load it via our custom function
+                        if (PlayerStatus === "UNPLAYABLE") {
+                            LightWork_loadRestrictedVideo();
+                        }
+
+                        // If the extraction fails, log it for debugging
+                    } catch (error) {
+                        LightWork_error('Failed to check for a restricted video ' + error);
+                    }
+                });
+
+                // Send the original request
+                return originalSend.apply(this, args);
+            }
+
+            // otherwise, if its a different request, let the original API handle it
+            return originalSend.apply(this, args);
+        };
+
+        // Initial player check (does not use the normal API endpoint to indicate the error)
+        let InitialPlayerResponse = ytcfg.data_.PLAYER_VARS.embedded_player_response;
+        try {
+            if (InitialPlayerResponse) {
+                let parsed = JSON.parse(InitialPlayerResponse);
+                // If the video is unplayable in our player, load it via our custom function
+                if (parsed.previewPlayabilityStatus.status === "UNPLAYABLE") {
+                    LightWork_loadRestrictedVideo();
+                }
+            }
+        } catch (error) {
+            LightWork_error('Failed to check for a restricted video ' + error);
+        }
+
+        // Waits until the player exists and then loads the video
+        function LightWork_loadRestrictedVideo() {
+            let player = document.querySelector("#movie_player") || document.querySelector(".html5-video-player");
+            if (!player || typeof player.loadVideoById !== "function") {
+                setTimeout(LightWork_loadRestrictedVideo, 10);
+                return;
+            }
+
+            // Add it to our restricted videos list
+            let CurrentVideoId = player.getVideoData().video_id;
+            if (CurrentVideoId) {
+                if (!RestrictedVideos.includes(CurrentVideoId)) {
+                    RestrictedVideos.push(CurrentVideoId);
+                }
+
+                // Load the video
+                player.loadVideoById(CurrentVideoId);
+            }
+        }
     }
 
     function LightWork_createProxyIframe() {
@@ -1225,6 +1493,7 @@ else {
         if (LightWork_useBackup) {
             LightWork_createProxyIframe();
         }
+
         // Inject the old styles & scripts
         LightWork_injectStyles();
         LightWork_injectScripts();

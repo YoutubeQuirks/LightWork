@@ -35,7 +35,9 @@ LightWork allows configuration via URL parameters and UserScript flags.
 
 #### UserScript flags:
 1.) `LightWork_useBackup`: The backup player will be loaded instead of the main one.  
-2.) `LightWork_retryInjection`: If LightWork runs too late and injection fails, this flag will reload the page and retry.
+2.) `LightWork_retryInjection`: If LightWork runs too late and injection fails, this flag will reload the page and retry.  
+3.) `LightWork_playRestrictedVideos`: The embedded player will load videos it normally can‘t. This includes videos with embedding disabled, trademarks (like FIFA) and more. Better compatibility for this in the future! Currently does not work with the backup player.  
+NOTE: You will have to disable your adblocker in the embedded player in order to use this, as it conflicts. The player is already ad-free, so you don‘t need it anyways.
 
 #### Compatibility:
 LightWork dispatches an event called `LightWorkLoaded` on `window` when the player finishes loading. You need to define the listener at documet-start and your code needs to run inside the iframe. Example code:  
